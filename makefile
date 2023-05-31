@@ -7,7 +7,7 @@ diner: diner.c
 family: family.c
 	gcc family.c -o family -pthread
 
-my:
+run:
 	gcc shell.c -o shell -pthread && clear && ./shell
 
 clean:
