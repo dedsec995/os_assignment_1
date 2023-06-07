@@ -105,8 +105,12 @@ int run_command()
 	int pipe_loc = -1;
 	int pipe_fd[2];
 
+	//--------------------------Exit Code------------------------------------------------
+
 	if (strcmp(tokens[0], EXIT_STR) == 0)
 		return EXIT_CMD;
+
+	//---------------------------History Code---------------------------------------------
 
 	if (strcmp(tokens[0], HISTORY_STR) == 0)
 	{
@@ -135,6 +139,8 @@ int run_command()
 			return run_command();
 		}
 	}
+
+	//-------------------------------------------------------------------------------
 
 	for (int i = 0; i < MAX_TOKENS; i++)
 	{

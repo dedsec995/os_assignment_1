@@ -12,3 +12,9 @@ run:
 
 clean:
 	rm -rf shell && clear
+
+demo:
+	gcc demo.c -o demo -pthread && clear && ./demo
+
+ddemo:
+	rm -rf demo && clear
