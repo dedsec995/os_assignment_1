@@ -30,7 +30,7 @@ size_t MAX_LINE_LEN = 10000;
 FILE *fp; // file struct for stdin
 char **tokens;
 char *line;
-char *line2;
+char *line2; // Backup of line
 char *history[MAX_HISTORY];
 int history_count = 0;
 
@@ -142,6 +142,9 @@ int run_command()
 
 	//-------------------------------------------------------------------------------
 
+
+	//----------------------------------Redirect & Pipe Checking---------------------
+
 	for (int i = 0; i < MAX_TOKENS; i++)
 	{
 		if (tokens[i] == NULL)
@@ -152,35 +155,37 @@ int run_command()
 		else if (strcmp(tokens[i], ">") == 0)
 		{
 			redirect = WRITE_TO_FILE;
-			tokens[i] = NULL;					 // Set the ">" token to NULL
-			freopen(tokens[i + 1], "w", stdout); // Redirect stdout to the file
+			tokens[i] = NULL;
+			freopen(tokens[i + 1], "w", stdout);
 			break;
 		}
 		else if (strcmp(tokens[i], "<") == 0)
 		{
 			redirect = READ_FROM_FILE;
-			tokens[i] = NULL;					// Set the "<" token to NULL
-			freopen(tokens[i + 1], "r", stdin); // Redirect stdin from the file
+			tokens[i] = NULL;
+			freopen(tokens[i + 1], "r", stdin);
 			break;
 		}
 		else if (strcmp(tokens[i], "|") == 0)
 		{
 			is_piped = TRUE;
 			pipe_loc = i;
-			tokens[i] = NULL; // Set the "|" token to NULL
+			tokens[i] = NULL; 
 			break;
 		}
 	}
+
+	//-------------------------------------------------------------------------------
+
 	if (is_piped)
 	{
 		// Create a pipe
 		if (pipe(pipe_fd) == -1)
 		{
-			perror("Pipe creation failed");
+			perror("Could not create pipe :(");
 			return UNKNOWN_CMD;
 		}
 
-		// Create two child processes
 		pid_t pid1, pid2;
 		pid1 = fork();
 
@@ -190,10 +195,10 @@ int run_command()
 			exit(1);
 		}
 		else if (pid1 == 0)
-		{
-			// Child 1 process: Executes the first command and writes to the pipe
-			close(pipe_fd[0]);				 // Close the read end of the pipe
-			dup2(pipe_fd[1], STDOUT_FILENO); // Redirect stdout to the write end of the pipe
+		{	
+			// Child 1
+			close(pipe_fd[0]);				 
+			dup2(pipe_fd[1], STDOUT_FILENO);
 			execvp(tokens[0], tokens);
 			perror("Command execution failed");
 			exit(1);
@@ -210,9 +215,9 @@ int run_command()
 			}
 			else if (pid2 == 0)
 			{
-				// Child 2 process: Executes the second command and reads from the pipe
-				close(pipe_fd[1]);				// Close the write end of the pipe
-				dup2(pipe_fd[0], STDIN_FILENO); // Redirect stdin to the read end of the pipe
+				// Child 2
+				close(pipe_fd[1]);
+				dup2(pipe_fd[0], STDIN_FILENO);
 				execvp(tokens[pipe_loc + 1], &tokens[pipe_loc + 1]);
 				perror("Command execution failed");
 				exit(1);
@@ -220,8 +225,8 @@ int run_command()
 			else
 			{
 				// Parent process
-				close(pipe_fd[0]); // Close the read end of the pipe
-				close(pipe_fd[1]); // Close the write end of the pipe
+				close(pipe_fd[0]);
+				close(pipe_fd[1]);
 				waitpid(pid1, NULL, 0);
 				waitpid(pid2, NULL, 0);
 			}
@@ -229,19 +234,20 @@ int run_command()
 	}
 	else
 	{
-		// No pipe, execute the command as before
+		// No pipe
 		pid_t pid = fork();
 
 		if (pid < 0)
 		{
+			// Could not fork
 			perror("Forking error");
 			exit(1);
 		}
 		else if (pid == 0)
 		{
-			// Child process: Executes the command
+			// Child process
 			execvp(tokens[0], tokens);
-			perror("Command not found");
+			perror("Command execution failed");
 			exit(1);
 		}
 		else
